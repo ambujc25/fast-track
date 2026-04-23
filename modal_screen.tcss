@@ -1,0 +1,51 @@
+GetModalScreen {
+    align: center middle;
+}
+
+#dialog {
+    width: 55;
+    /* padding: 1 2 0 2; */
+    background: #1e1e2e;
+    height: auto;
+    /* border: thick #666a86; */
+    /* outline: thick #666a86; */
+    border-top: none;
+    border-left: thick #666a86;
+    border-right: thick #666a86;
+    border-bottom: none;
+}
+
+#dialog-body {
+    padding: 1 2 2 2;
+    width: 100%;
+    height: auto;
+}
+
+#modal-footer {
+    dock: bottom;
+    height: 1;
+    width: 1fr;
+    background: #666a86;
+    color: #d8dbeb;
+}
+
+#modal-header {
+    dock: top;
+    height: 1;
+    width: 1fr;
+    background: #666a86;
+    color: #d8dbeb;
+}
+
+.form {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+    margin: 0 0 1 0;
+}
+
+.form Label {
+    color: #f2a167;
+    text-style: bold;
+    margin: 0 0 0 0;
+}

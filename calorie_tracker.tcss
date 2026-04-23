@@ -1,0 +1,52 @@
+#app-container-header {
+    height: auto;
+    padding-left: 3;
+    padding-top: 1;
+    padding-bottom: 1;
+}
+
+#app-container-header Label {
+    margin-right: 4;
+}
+
+Tabs {
+    width: 19;
+}
+
+.outer-pane-left {
+    width: 0.6fr;
+}
+
+.pane {
+    height: 1fr;
+    width: 1fr;
+    padding-top: 0;
+    border: solid round lightblue;
+}
+
+.pane-top-left {
+    height: 0.5fr;
+    padding-top: 2;
+    padding-left: 4;
+}
+
+.pane-top-right {
+    height: 1.8fr;
+    position: relative;
+}
+
+.pane-top-right:focus-within {
+    border: round orange;
+}
+
+.daily-macro-marker {
+    margin-right: 8;
+}
+
+.daily-macro-value {
+    color: orange;
+}
+
+.daily-protein-marker {
+    margin-right: 9;
+}
