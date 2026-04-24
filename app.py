@@ -38,12 +38,22 @@ def init_db() -> None:
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS food_db (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ingredient TEXT NOT NULL,
+            calories REAL NOT NULL,
+            protein REAL NOT NULL,
+            sugar REAL
+        )
+    """)
+
     conn.commit()
     conn.close()
 
 class CalorieTrackerApp(App):
     CSS_PATH = "calorie_tracker.tcss"
-    VERSION = "0.2.1"
+    VERSION = "1.0.0"
 
     BINDINGS = [
         Binding("1", "focus_today_food", "Meals", show=False),
@@ -142,17 +152,17 @@ class CalorieTrackerApp(App):
 
     def load_food_db_table(self) -> None:
         food_database_table = self.query_one("#food-database-table", DataTable)
-        i = 0
-        with open("data/food_db.csv", newline="") as f:
-            reader = csv.reader(f)
-            for row in reader:
-                if i == 0:
-                    i = i + 1
-                    continue
-                
-                # ingredients - calories - protein - sugar
-                food_database_table.add_row(row[0], row[1], row[3], row[4])
-                self.food_db_dict[row[0]] = [row[1], row[3], row[4]]
+        food_database_table.clear(columns=False)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+
+        cur.execute("SELECT id, ingredient, calories, protein, sugar FROM food_db ORDER BY id")
+        rows = cur.fetchall()
+
+        for food_id, ingredient, calories, protein, sugar in rows:
+            food_database_table.add_row(str(ingredient), str(calories), str(protein), str(sugar), key=str(food_id))
+            self.food_db_dict[ingredient] = [calories, protein, sugar]
+
 
     def load_today_food_table(self, date_given=None) -> None:
         # clear table and load from sqlite
@@ -176,7 +186,7 @@ class CalorieTrackerApp(App):
         else:
             cur.execute("SELECT id, food, meal, quantity, calories, protein, sugar, date FROM calories where date = ? ORDER BY ID", (date_given,))
         rows = cur.fetchall()
-
+        print(rows)
         order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner']
         for i, meal_type in enumerate(order):
             counter = 0

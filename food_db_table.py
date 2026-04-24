@@ -8,6 +8,8 @@ from textual.containers import Container
 
 from modal_entry import GetModalScreen
 
+DB_PATH = "calories.db"
+
 class FoodDatabaseTable(DataTable):
     BINDINGS = [
         Binding("a", "add_food", "Add food"),
@@ -27,26 +29,28 @@ class FoodDatabaseTable(DataTable):
         protein = values[2]
         sugar = values[3]
 
-        food_db_table.add_row(ingredient, calories, protein, sugar)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO food_db (ingredient, calories, protein, sugar) VALUES (?, ?, ?, ?)",
+            (ingredient, calories, protein, sugar),
+        )
+        conn.commit()
+        conn.close()
+        self.app.load_food_db_table()
 
-        # conn = sqlite3.connect(DB_PATH)
-        # cur = conn.cursor()
-        # cur.execute(
-        #     "INSERT INTO calories (food, meal, quantity, calories, protein, sugar, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        #     (food, meal, quantity, calories, protein, sugar, date_today),
-        # )
-        # conn.commit()
-        # conn.close()
-        # calories_id = cur.lastrowid
-
-        # self.app.load_today_food_table()
-        # self.app.load_macros_history_table()
-        # when the first of the day is added, create entry in dates table
-        # if table.row_count == 1:1
 
     def action_delete_selected(self) -> None:
         table = self.app.query_one("#food-database-table", DataTable)
         coord = table.cursor_coordinate
         row_key, _column_key = table.coordinate_to_cell_key(coord)
+
+        food_id = row_key.value
+
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM food_db WHERE id = ?", (food_id,))
+        conn.commit()
+        conn.close()
 
         table.remove_row(row_key)

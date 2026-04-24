@@ -6,3 +6,4 @@ __pycache__/
 *.pyd
 *.sqlite3
 *.db
+create_food_db_from_csv.py

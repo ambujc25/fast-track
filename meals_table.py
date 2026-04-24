@@ -28,8 +28,11 @@ class MealsTableContainer(Container):
         quantity = values[2]
         date_given = values[3]
 
+        if food not in self.app.food_db_dict:
+            print("Ingredient not in list")
+            return
+
         macros = self.app.food_db_dict[food]
-        print(macros)
         calories = float(macros[0])*float(quantity)
         protein = float(macros[1])*float(quantity)
         sugar = 0
@@ -74,6 +77,5 @@ class MealsTableContainer(Container):
         conn.commit()
         conn.close()
 
-        table.remove_row(row_key)
         self.app.load_today_food_table()
         self.app.load_macros_history_table()

@@ -113,6 +113,10 @@ class GetModalScreen(ModalScreen):
         if self.form_type == "1":
             food = self.query_one("#input-Food", Input).value
             meal = self.query_one("#input-Meal", Input).value.strip()
+            if food not in self.food_suggestions or meal not in self.meal_suggestions:
+                self.dismiss(None)
+                return
+
             quantity = self.query_one("#input-Quantity", Input).value.strip()
             if self.today:
                 date = self.date_today
