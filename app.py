@@ -16,6 +16,8 @@ from textual.widgets import Tabs, Tab, Header, Footer
 from textual.binding import Binding
 
 from meals_table import MealsTableContainer
+from dates_table import DatesTable
+from food_db_table import FoodDatabaseTable
 
 DB_PATH = "calories.db"
 
@@ -41,7 +43,7 @@ def init_db() -> None:
 
 class CalorieTrackerApp(App):
     CSS_PATH = "calorie_tracker.tcss"
-    VERSION = "0.1.1"
+    VERSION = "0.2.1"
 
     BINDINGS = [
         Binding("1", "focus_today_food", "Meals", show=False),
@@ -87,7 +89,7 @@ class CalorieTrackerApp(App):
                 macros_history_box.border_title = "Dates"
                 macros_history_box.border_subtitle = "2"
                 with macros_history_box:
-                    yield DataTable(id="macros-history-table")
+                    yield DatesTable(id="macros-history-table")
 
             with Vertical(classes="outer-pane outer-pane-right"):
                 meals_table_container = MealsTableContainer(classes="pane pane-top-right", id="meals_table_container")
@@ -100,7 +102,7 @@ class CalorieTrackerApp(App):
                 food_db_box.border_title = "Food Database"
                 food_db_box.border_subtitle = "3"
                 with food_db_box:
-                    yield DataTable(id="food-database-table")
+                    yield FoodDatabaseTable(id="food-database-table")
 
         yield Footer()
 
@@ -113,6 +115,7 @@ class CalorieTrackerApp(App):
         macros_history_table.zebra_stripes = True
         macros_history_table.cursor_type = "row"
         macros_history_table.expand = True
+        self.load_macros_history_table()
 
         today_food_table = self.query_one("#today-food-table", DataTable)
         today_food_table.add_column("Food", key="food", width=22)
@@ -125,7 +128,7 @@ class CalorieTrackerApp(App):
         today_food_table.cursor_type = "row"
         today_food_table.expand = True
         today_food_table.add_row("// comment row")
-        self.load_table()
+        self.load_today_food_table()
 
         food_database_table = self.query_one("#food-database-table", DataTable)
         food_database_table.add_column("Ingredient", key="ingredient", width=26)
@@ -135,7 +138,10 @@ class CalorieTrackerApp(App):
         food_database_table.zebra_stripes = True
         food_database_table.cursor_type = "row"
         food_database_table.expand = True
+        self.load_food_db_table()
 
+    def load_food_db_table(self) -> None:
+        food_database_table = self.query_one("#food-database-table", DataTable)
         i = 0
         with open("data/food_db.csv", newline="") as f:
             reader = csv.reader(f)
@@ -148,14 +154,27 @@ class CalorieTrackerApp(App):
                 food_database_table.add_row(row[0], row[1], row[3], row[4])
                 self.food_db_dict[row[0]] = [row[1], row[3], row[4]]
 
-    def load_table(self) -> None:
+    def load_today_food_table(self, date_given=None) -> None:
         # clear table and load from sqlite
         today_food_table = self.query_one("#today-food-table", DataTable)
         today_food_table.clear(columns=False)
 
+        macros_history_table = self.query_one("#macros-history-table", DataTable)
+
+        date_selected = str(date.today())
+        if len(macros_history_table.rows) != 0:
+            coord = macros_history_table.cursor_coordinate
+            row_key, _column_key = macros_history_table.coordinate_to_cell_key(coord)
+            row_values = macros_history_table.get_row(row_key)
+            date_selected = row_values[0]
+
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("SELECT id, food, meal, quantity, calories, protein, sugar, date FROM calories ORDER BY id")
+
+        if date_given is None:
+            cur.execute("SELECT id, food, meal, quantity, calories, protein, sugar, date FROM calories where date = ? ORDER BY id", (date_selected,))
+        else:
+            cur.execute("SELECT id, food, meal, quantity, calories, protein, sugar, date FROM calories where date = ? ORDER BY ID", (date_given,))
         rows = cur.fetchall()
 
         order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner']
@@ -171,10 +190,11 @@ class CalorieTrackerApp(App):
                     today_food_table.add_row(str(food), str(meal), str(quantity), str(calories), str(protein), str(dates), key=str(calories_id))
 
         # update today's macros
-        date_today = str(date.today())
-        cur.execute("SELECT * FROM calories where date = ?", (date_today,))
+        cur.execute("SELECT * FROM calories where date = ?", (date_selected,))
         rows = cur.fetchall()
-        conn.close()
+
+        self.calories_today = 0
+        self.protein_today = 0
 
         for row in rows:
             self.app.calories_today = float(self.calories_today) + float(row[4])
@@ -182,6 +202,33 @@ class CalorieTrackerApp(App):
 
         calorie_label = self.query_one("#calorie-today", Label).update(str(math.trunc(self.calories_today)))
         protein_label = self.query_one("#protein-today", Label).update(str(math.trunc(self.protein_today)))
+
+    def load_macros_history_table(self) -> None:
+        macros_history_table = self.query_one("#macros-history-table", DataTable)
+        coord = macros_history_table.cursor_coordinate
+
+        date_selected = None
+        if coord is not None:
+            try:
+                row_key, _column_key = macros_history_table.coordinate_to_cell_key(coord)
+                date_selected = macros_history_table.get_row(row_key)[0]
+            except Exception:
+                coord = None
+        
+        macros_history_table.clear(columns=False)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT date, SUM(calories) as total_calories, SUM(protein) as total_protein
+            FROM calories
+            GROUP BY date
+            ORDER BY date DESC
+        """)
+        rows = cur.fetchall()
+        for date, calories, protein in rows:
+            macros_history_table.add_row(str(date), str(calories), str(protein), key=str(date))
+            if date_selected is not None and str(date) == date_selected:
+                macros_history_table.move_cursor(row=(len(macros_history_table.rows)-1), column=0)
 
     def action_focus_today_food(self) -> None:
         self.set_focus(self.query_one("#today-food-table", DataTable))

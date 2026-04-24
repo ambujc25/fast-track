@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import math
 import sqlite3
 
@@ -15,6 +15,7 @@ class MealsTableContainer(Container):
     BINDINGS = [
         Binding("a", "add_food", "Add food"),
         Binding("d", "delete_selected", "Delete row"),
+        Binding("ctrl+n", "add_today", "Add today")
     ]
 
     def handle_input(self, values:list):
@@ -25,32 +26,32 @@ class MealsTableContainer(Container):
         food = values[0]
         meal = values[1]
         quantity = values[2]
+        date_given = values[3]
 
         macros = self.app.food_db_dict[food]
         print(macros)
         calories = float(macros[0])*float(quantity)
         protein = float(macros[1])*float(quantity)
         sugar = 0
-        date_today = str(date.today())
         
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO calories (food, meal, quantity, calories, protein, sugar, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (food, meal, quantity, calories, protein, sugar, date_today),
+            (food, meal, quantity, calories, protein, sugar, date_given),
         )
         conn.commit()
         conn.close()
         calories_id = cur.lastrowid
 
-        table.add_row(food, meal, quantity, str(calories), str(protein), str(date.today()), key=str(calories_id))
-        self.app.load_table()
-        # when the first of the day is added, create entry in dates table
-        # if table.row_count == 1:
-            
+        self.app.load_today_food_table()
+        self.app.load_macros_history_table()
 
     def action_add_food(self) -> None:
         self.app.push_screen(GetModalScreen("1"), self.handle_input)
+
+    def action_add_today(self) -> None:
+        self.app.push_screen(GetModalScreen("1", "today"), self.handle_input)
 
     def action_delete_selected(self) -> None:
         table = self.app.query_one("#today-food-table", DataTable)
@@ -74,4 +75,5 @@ class MealsTableContainer(Container):
         conn.close()
 
         table.remove_row(row_key)
-        self.app.load_table()
+        self.app.load_today_food_table()
+        self.app.load_macros_history_table()

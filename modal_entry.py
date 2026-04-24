@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from textual.app import App
 from textual.containers import (
     Horizontal,
@@ -19,7 +21,7 @@ class GetModalScreen(ModalScreen):
     CSS_PATH = "modal_screen.tcss"
 
     BINDINGS = [
-        ("escape", "cancel", "Cancel")
+        ("escape", "cancel", "Cancel"),
     ]
 
     contents = {
@@ -28,16 +30,26 @@ class GetModalScreen(ModalScreen):
     }
 
 
-    def __init__(self, form_type):
+    def __init__(self, form_type, today=False):
         super().__init__()
         self.setting_input_by_code = False
         self.food_suggestions = self.app.food_db_dict.keys()
         self.meal_suggestions = ["Breakfast", "Lunch", "Snacks", "Dinner"]
         self.form_type = form_type
+        self.today = today
         self.suggestion_dict = {
             "food": self.food_suggestions,
             "meal": self.meal_suggestions
         }
+
+        self.date_today = str(date.today())
+        self.date_selected = str(date.today())
+        macros_history_table = self.app.query_one("#macros-history-table", DataTable)
+        if len(macros_history_table.rows) != 0:
+            coord = macros_history_table.cursor_coordinate
+            row_key, _column_key = macros_history_table.coordinate_to_cell_key(coord)
+            row_values = macros_history_table.get_row(row_key)
+            self.date_selected = row_values[0]
 
     def compose(self):
         with VerticalGroup(id="dialog"):
@@ -61,6 +73,7 @@ class GetModalScreen(ModalScreen):
                             option_list = OptionList(*self.meal_suggestions, id="meal_suggestions")
                             option_list.styles.display = "none"
                             yield option_list
+ 
 
             yield Footer(id="modal-footer")
 
@@ -97,15 +110,33 @@ class GetModalScreen(ModalScreen):
             self.query_one(f"#input-{content_list[current_index+1]}").focus()
             return
 
-        food = self.query_one("#input-Food", Input).value.strip()
-        meal = self.query_one("#input-Meal", Input).value.strip()
-        quantity = self.query_one("#input-Quantity", Input).value.strip()
-        
-        if not food or not meal or not quantity:
-            self.dismiss(None)
-            return
+        if self.form_type == "1":
+            food = self.query_one("#input-Food", Input).value
+            meal = self.query_one("#input-Meal", Input).value.strip()
+            quantity = self.query_one("#input-Quantity", Input).value.strip()
+            if self.today:
+                date = self.date_today
+            else:
+                date = self.date_selected
 
-        self.dismiss([food, meal, quantity])
+            if not food or not meal or not quantity:
+                self.dismiss(None)
+                return
+
+            self.dismiss([food, meal, quantity, date])
+        elif self.form_type == "3":
+            ingredient = self.query_one("#input-Ingredient", Input).value.strip()
+            calories = self.query_one("#input-Calories", Input).value.strip()
+            protein = self.query_one("#input-Protein", Input).value.strip()
+            sugar = self.query_one("#input-Sugar", Input).value.strip()
+            print(ingredient, calories, protein, sugar)
+            if not ingredient or not calories or not protein:
+                print("here??")
+                self.dismiss(None)
+                return
+        
+            self.dismiss([ingredient, calories, protein, sugar])
+
 
     def action_cancel(self):
         self.dismiss(None)
