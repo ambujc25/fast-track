@@ -1,0 +1,1 @@
+![App Screenshot](calorie_tracker_ss.png)

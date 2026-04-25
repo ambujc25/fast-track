@@ -34,7 +34,11 @@ class MealsTableContainer(Container):
 
         macros = self.app.food_db_dict[food]
         calories = float(macros[0])*float(quantity)
-        protein = float(macros[1])*float(quantity)
+        if macros[1] != "":
+            protein = float(macros[1])*float(quantity)
+        else:
+            protein = 0
+
         sugar = 0
         
         conn = sqlite3.connect(DB_PATH)
