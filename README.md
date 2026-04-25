@@ -1,1 +1,1 @@
-![App Screenshot](calorie_tracker_ss.png)
+![App Screenshot](data/calorie_tracker_ss.png)
