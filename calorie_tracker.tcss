@@ -9,6 +9,14 @@
     margin-right: 4;
 }
 
+#login-container-outer {
+    align: center middle;
+}
+
+.input-login {
+    width: 0.4fr;
+}
+
 Tabs {
     width: 19;
 }

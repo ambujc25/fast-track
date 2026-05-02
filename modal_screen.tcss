@@ -10,8 +10,8 @@ GetModalScreen {
     /* border: thick #666a86; */
     /* outline: thick #666a86; */
     border-top: none;
-    border-left: thick #666a86;
-    border-right: thick #666a86;
+    border-left: thick #51405b;
+    border-right: thick #51405b;
     border-bottom: none;
 }
 
@@ -25,16 +25,16 @@ GetModalScreen {
     dock: bottom;
     height: 1;
     width: 1fr;
-    background: #666a86;
-    color: #d8dbeb;
+    background: #51405b;
+    color: #e7d3d3;
 }
 
 #modal-header {
     dock: top;
     height: 1;
     width: 1fr;
-    background: #666a86;
-    color: #d8dbeb;
+    background: #51405b;
+    color: #ffffff;
 }
 
 .form {
@@ -42,6 +42,10 @@ GetModalScreen {
     height: auto;
     layout: vertical;
     margin: 0 0 1 0;
+}
+
+.form Input {
+    background: #292b40;
 }
 
 .form Label {

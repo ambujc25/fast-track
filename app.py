@@ -11,7 +11,7 @@ from textual.containers import (
     VerticalScroll,
     Container
 )
-from textual.widgets import Label, Static, DataTable
+from textual.widgets import Label, Static, DataTable, Input
 from textual.widgets import Tabs, Tab, Header, Footer
 from textual.binding import Binding
 
@@ -62,93 +62,143 @@ class CalorieTrackerApp(App):
     ]
 
     food_db_dict = {}
-    
+    view_id_list = ["content-container-outer-tracker-view", "content-container-outer-recipes-view"]
+
     def compose(self):
         
         self.calories_today = 0
         self.protein_today = 0
+        self.offline_mode = False
+        self.logged_in = True
 
         yield Horizontal(
             Label("Calorie Tracker", id="app-label-title"),
             Label(f"Version: {CalorieTrackerApp.VERSION}", id="app-label-version"),
             Tabs(
-                Tab("Tracker", id="app-tab-tracker"),
-                Tab("Insights", id="app-tab-insights")
+                Tab("Tracker", id="content-container-outer-tracker"),
+                Tab("Recipes", id="content-container-outer-recipes")
             ),
             id="app-container-header"
         )
 
-        with Horizontal(id="content-container-outer"):
-            with Vertical(classes="outer-pane outer-pane-left"):
-                daily_macros_box = Container(classes="pane pane-top-left")
-                daily_macros_box.border_title = "Today's Macros"
-                with daily_macros_box:
-                    yield Horizontal(
-                        Label("Calories: ", classes="daily-calorie-marker daily-macro-marker"),
-                        Label(str(self.calories_today), classes="daily-calorie-value daily-macro-value", id="calorie-today"),
-                        classes = "daily-calorie-container"
-                    )
+        if self.offline_mode or self.logged_in:
+            with Horizontal(id="content-container-outer-tracker-view"):
+                with Vertical(classes="outer-pane outer-pane-left"):
+                    daily_macros_box = Container(classes="pane pane-top-left")
+                    daily_macros_box.border_title = "Today's Macros"
+                    with daily_macros_box:
+                        yield Horizontal(
+                            Label("Calories: ", classes="daily-calorie-marker daily-macro-marker"),
+                            Label(str(self.calories_today), classes="daily-calorie-value daily-macro-value", id="calorie-today"),
+                            classes = "daily-calorie-container"
+                        )
 
-                    yield Horizontal(
-                        Label("Protein: ", classes="daily-protein-marker daily-macro-marker"),
-                        Label(str(self.protein_today), classes="daily-protein-value daily-macro-value", id="protein-today"),
-                        classes = "daily-calorie-container"
-                    )
+                        yield Horizontal(
+                            Label("Protein: ", classes="daily-protein-marker daily-macro-marker"),
+                            Label(str(self.protein_today), classes="daily-protein-value daily-macro-value", id="protein-today"),
+                            classes = "daily-calorie-container"
+                        )
 
-                macros_history_box = Container(classes="pane pane-bottom-left")
-                macros_history_box.border_title = "Dates"
-                macros_history_box.border_subtitle = "2"
-                with macros_history_box:
-                    yield DatesTable(id="macros-history-table")
+                    macros_history_box = Container(classes="pane pane-bottom-left")
+                    macros_history_box.border_title = "Dates"
+                    macros_history_box.border_subtitle = "2"
+                    with macros_history_box:
+                        yield DatesTable(id="macros-history-table")
 
-            with Vertical(classes="outer-pane outer-pane-right"):
-                meals_table_container = MealsTableContainer(classes="pane pane-top-right", id="meals_table_container")
-                meals_table_container.border_title = "Meals"
-                meals_table_container.border_subtitle = "1"
-                with meals_table_container:
-                    yield DataTable(id="today-food-table")
+                with Vertical(classes="outer-pane outer-pane-right"):
+                    meals_table_container = MealsTableContainer(classes="pane pane-top-right", id="meals_table_container")
+                    meals_table_container.border_title = "Meals"
+                    meals_table_container.border_subtitle = "1"
+                    with meals_table_container:
+                        yield DataTable(id="today-food-table")
 
-                food_db_box = Container(classes="pane pane-bottom-right")
-                food_db_box.border_title = "Food Database"
-                food_db_box.border_subtitle = "3"
-                with food_db_box:
-                    yield FoodDatabaseTable(id="food-database-table")
+                    food_db_box = Container(classes="pane pane-bottom-right")
+                    food_db_box.border_title = "Food Database"
+                    food_db_box.border_subtitle = "3"
+                    with food_db_box:
+                        yield FoodDatabaseTable(id="food-database-table")
 
+            with Horizontal(id="content-container-outer-recipes-view"):
+                with Vertical(classes="outer-pane outer-pane-left"):
+                    recipe_list_box = Container(classes="pane pane-left")
+                    recipe_list_box.border_title = "Recipe List"
+                    with recipe_list_box:
+                        yield DataTable(id="recipe-list-table")
+
+                with Vertical(classes="outer-pane outer-pane-right"):
+                    recipe_full_box = Container(classes="pane pane-top-right")
+                    recipe_full_box.border_title = "Recipe"
+                    with recipe_full_box:
+                        yield Label("Recipe")
+
+                    ingredient_list_box = Container(classes="pane pane-bottom-right")
+                    ingredient_list_box.border_title = "Ingredient List"
+                    with ingredient_list_box:
+                        yield Label("Recipe")
+
+        else:
+            with Vertical(id="login-container-outer"):
+                yield Input(placeholder="Login", id="username", classes="input-login")
+                yield Input(placeholder="Password", id="password", classes="input-login")
         yield Footer()
 
     def on_mount(self) -> None:
-        init_db()
-        macros_history_table = self.query_one("#macros-history-table", DataTable)
-        macros_history_table.add_column("Date", key="date", width=10)
-        macros_history_table.add_column("Calories", key="calories", width=10)
-        macros_history_table.add_column("Protein", key="protein", width=10)
-        macros_history_table.zebra_stripes = True
-        macros_history_table.cursor_type = "row"
-        macros_history_table.expand = True
-        self.load_macros_history_table()
+        if self.logged_in:
+            init_db()
 
-        today_food_table = self.query_one("#today-food-table", DataTable)
-        today_food_table.add_column("Food", key="food", width=22)
-        today_food_table.add_column("Meal", key="meal", width=9)
-        today_food_table.add_column("Quantity", key="quantity", width=8)
-        today_food_table.add_column("Calories", key="calories", width=8)
-        today_food_table.add_column("Protein", key="protein", width=7)
-        today_food_table.add_column("Date", key="date", width=0)
-        today_food_table.zebra_stripes = True
-        today_food_table.cursor_type = "row"
-        today_food_table.expand = True
-        today_food_table.add_row("// comment row")
-        self.load_today_food_table()
+            # hide all
+            for container_id in self.view_id_list:
+                self.query_one(f"#{container_id}").display = False
 
-        food_database_table = self.query_one("#food-database-table", DataTable)
-        food_database_table.add_column("Ingredient", key="ingredient", width=26)
-        food_database_table.add_column("Calories", key="calories", width=10)
-        food_database_table.add_column("Protein", key="protein", width=10)
-        food_database_table.add_column("Sugar", key="sugar", width=9)
-        food_database_table.zebra_stripes = True
-        food_database_table.cursor_type = "row"
-        food_database_table.expand = True
-        self.load_food_db_table()
+            # show default tab
+            self.query_one(f"#content-container-outer-tracker-view").display = True
+
+            macros_history_table = self.query_one("#macros-history-table", DataTable)
+            macros_history_table.add_column("Date", key="date", width=10)
+            macros_history_table.add_column("Calories", key="calories", width=10)
+            macros_history_table.add_column("Protein", key="protein", width=10)
+            macros_history_table.zebra_stripes = True
+            macros_history_table.cursor_type = "row"
+            macros_history_table.expand = True
+            self.load_macros_history_table()
+
+            today_food_table = self.query_one("#today-food-table", DataTable)
+            today_food_table.add_column("Food", key="food", width=22)
+            today_food_table.add_column("Meal", key="meal", width=9)
+            today_food_table.add_column("Quantity", key="quantity", width=8)
+            today_food_table.add_column("Calories", key="calories", width=8)
+            today_food_table.add_column("Protein", key="protein", width=7)
+            today_food_table.add_column("Date", key="date", width=0)
+            today_food_table.zebra_stripes = True
+            today_food_table.cursor_type = "row"
+            today_food_table.expand = True
+            today_food_table.add_row("// comment row")
+            self.load_today_food_table()
+
+            food_database_table = self.query_one("#food-database-table", DataTable)
+            food_database_table.add_column("Ingredient", key="ingredient", width=26)
+            food_database_table.add_column("Calories", key="calories", width=10)
+            food_database_table.add_column("Protein", key="protein", width=10)
+            food_database_table.add_column("Sugar", key="sugar", width=9)
+            food_database_table.zebra_stripes = True
+            food_database_table.cursor_type = "row"
+            food_database_table.expand = True
+            self.load_food_db_table()
+
+            recipe_list_table = self.query_one("#recipe-list-table", DataTable)
+            recipe_list_table.add_column("Name", key="name")
+            recipe_list_table.add_column("Calories", key="calories")
+            recipe_list_table.add_column("Protein", key="protein")
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated):
+        # hide all
+        for container_id in self.view_id_list:
+            self.query_one(f"#{container_id}").display = False
+
+        # show selected
+        selected_tab = event.tab.id
+        self.query_one(f"#{selected_tab}-view").display = True
+
 
     def load_food_db_table(self) -> None:
         food_database_table = self.query_one("#food-database-table", DataTable)
@@ -236,7 +286,7 @@ class CalorieTrackerApp(App):
         """)
         rows = cur.fetchall()
         for date, calories, protein in rows:
-            macros_history_table.add_row(str(date), str(calories), str(protein), key=str(date))
+            macros_history_table.add_row(str(date), str(math.trunc(float(calories))), str(math.trunc(float(protein))), key=str(date))
             if date_selected is not None and str(date) == date_selected:
                 macros_history_table.move_cursor(row=(len(macros_history_table.rows)-1), column=0)
 
